@@ -1,0 +1,7 @@
+setenv
+apt.conf
+.env
+.env.bak
+*.crt
+*.key
+*.csr
