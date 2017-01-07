@@ -5,3 +5,4 @@ apt.conf
 *.crt
 *.key
 *.csr
+getclient
