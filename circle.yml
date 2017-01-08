@@ -1,0 +1,11 @@
+machine:
+  services:
+   - docker
+
+dependencies:
+  override:
+    - docker run --rm -v /Users/a045103/goxtracdev/src/github.com/xtracdev/atom-pub-proxy:/go/src/github.com/xtracdev/atom-pub-proxy -w /go/src/github.com/xtracdev/atom-pub-proxy xtracdev/goora bash -c make
+
+test:
+  override:
+    - echo 'test automation run as part of the docker build'
