@@ -4,7 +4,7 @@ machine:
 
 dependencies:
   override:
-    - docker run --rm -v /Users/a045103/goxtracdev/src/github.com/xtracdev/atom-pub-proxy:/go/src/github.com/xtracdev/atom-pub-proxy -w /go/src/github.com/xtracdev/atom-pub-proxy xtracdev/goora bash -c make
+    - docker run --rm -v "$PWD":/go/src/github.com/xtracdev/atom-pub-proxy -w /go/src/github.com/xtracdev/atom-pub-proxy xtracdev/goora bash -c make
 
 test:
   override:
