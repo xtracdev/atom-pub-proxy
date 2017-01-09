@@ -3,8 +3,8 @@
 ## Context
 
 The es atom publisher serves up an atom feed of event store events. The
-event store feeds are immutable as the represent an ordered set of 
-events, each of which are immutable. All feeds except the recent
+event store feeds are immutable as they represent an ordered set of 
+events, each of which is immutable. All feeds except the recent
 feed are immutable, and the retrieval of a feed or event has
 cache headers that are immutable as well. Therefore the use of 
 a caching proxy in front of the feed will allow the access of 
@@ -18,7 +18,7 @@ docker-compose.
 
 ## Health check inspection
 
-To trouble shoot the container health check, use docker inspect, e.g.
+To troubleshoot the container health check, use docker inspect, e.g.
 
 <pre>
 docker inspect --format "{{json .State.Health }}" container-name
@@ -29,7 +29,8 @@ For example: `docker inspect --format "{{json .State.Health }}" devcenter_nginxp
 ## Constraints
 
 The certificate naming convention baked into the Dockerfile's health
-check must be observed. Also, use the subject alt names extension to 
+check must be observed, and aligned with the volume mounting convention in the
+docker compose file. Also, use the subject alt names extension to 
 associate the nginxproxy cert both with the docker-compose network
 name (nginxproxy) and the endpoint clients will access it using.
 
