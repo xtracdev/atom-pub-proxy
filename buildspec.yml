@@ -5,7 +5,6 @@ phases:
     commands:
       - chmod +x getclient
       - chmod +x wait_for_feed_server.sh
-      - . ./buildNo
       - docker login -u $DOCKER_USER -p $DOCKER_PASS
-      - docker build -t xtracdev/nginxproxy:latest -t xtracdev/nginxproxy:$BUILD_NO .
+      - docker build -t xtracdev/nginxproxy:latest -t xtracdev/nginxproxy:`cat buildNo` .
       - docker push xtracdev/nginxproxy
