@@ -1,6 +1,6 @@
 FROM nginx:1.11.8
 
-COPY apt.conf /etc/apt/apt.conf
+#COPY apt.conf /etc/apt/apt.conf
 
 RUN apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y \
