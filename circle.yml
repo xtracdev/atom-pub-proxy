@@ -9,3 +9,10 @@ dependencies:
 test:
   override:
     - echo 'test automation run as part of the docker build'
+
+deployment:
+  hub:
+    branch: master
+    commands:
+      - zip  atomproxy.zip Dockerfile getclient buildspec.yml
+      - aws s3 cp atomproxy.zip s3://xt-circle-ci/atomproxy.zip

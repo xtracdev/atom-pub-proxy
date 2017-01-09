@@ -1,0 +1,9 @@
+version: 0.1
+
+phases:
+  build:
+    commands:
+      - chmod +x getclient
+      - docker login -u $DOCKER_USER -p $DOCKER_PASS
+      - docker build -t xtracdev/nginxproxy .
+      - docker push xtracdev/nginxproxy
