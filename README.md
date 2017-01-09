@@ -28,7 +28,7 @@ For example: `docker inspect --format "{{json .State.Health }}" devcenter_nginxp
 
 ## Constraints
 
-The certificate naming convention backed into the Dockerfile's health
+The certificate naming convention baked into the Dockerfile's health
 check must be observed. Also, use the subject alt names extension to 
 associate the nginxproxy cert both with the docker-compose network
 name (nginxproxy) and the endpoint clients will access it using.
