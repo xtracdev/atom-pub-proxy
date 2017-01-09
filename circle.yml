@@ -4,6 +4,7 @@ machine:
 
 dependencies:
   override:
+    - echo 'export BUILD_NO=$CIRCLE_BUILD_NUM' > buildNo
     - docker run --rm -v "$PWD":/go/src/github.com/xtracdev/atom-pub-proxy -w /go/src/github.com/xtracdev/atom-pub-proxy xtracdev/goora bash -c make
 
 test:
@@ -14,6 +15,5 @@ deployment:
   hub:
     branch: master
     commands:
-      - echo 'export BUILD_NO=$CIRCLE_BUILD_NUM' > buildNo
       - zip  atomproxy.zip Dockerfile getclient buildspec.yml wait_for_feed_server.sh buildNo
       - aws s3 cp atomproxy.zip s3://xt-circle-ci/atomproxy.zip
