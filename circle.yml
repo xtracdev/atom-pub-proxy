@@ -14,5 +14,5 @@ deployment:
   hub:
     branch: master
     commands:
-      - zip  atomproxy.zip Dockerfile getclient buildspec.yml
+      - zip  atomproxy.zip Dockerfile getclient buildspec.yml wait_for_feed_server.sh
       - aws s3 cp atomproxy.zip s3://xt-circle-ci/atomproxy.zip
