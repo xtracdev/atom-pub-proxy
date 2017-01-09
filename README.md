@@ -24,6 +24,15 @@ To trouble shoot the container health check, use docker inspect, e.g.
 docker inspect --format "{{json .State.Health }}" container-name
 </pre>
 
+For example: `docker inspect --format "{{json .State.Health }}" devcenter_nginxproxy_1`
+
+## Constraints
+
+The certificate naming convention backed into the Dockerfile's health
+check must be observed. Also, use the subject alt names extension to 
+associate the nginxproxy cert both with the docker-compose network
+name (nginxproxy) and the endpoint clients will access it using.
+
 ## Contributing
 
 To contribute, you must certify you agree with the [Developer Certificate of Origin](http://developercertificate.org/)
