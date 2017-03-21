@@ -3,7 +3,6 @@ version: 0.1
 phases:
   build:
     commands:
-      - chmod +x getclient
       - chmod +x wait_for_feed_server.sh
       - docker login -u $DOCKER_USER -p $DOCKER_PASS
       - docker build -t xtracdev/nginxproxy:latest -t xtracdev/nginxproxy:`cat buildNo` .
