@@ -3,8 +3,6 @@ version: '2'
 services:
   atomfeedpub:
     image: xtracdev/atompub
-    ports:
-      - "4000:8000"
     environment:
       - LINKHOST=${LINKHOST}
       - LISTENADDR=${LISTENADDR}
@@ -17,8 +15,6 @@ services:
 
   nginxproxy:
     image: xtracdev/nginxproxy
-    volumes:
-      - ./rp.conf:/etc/nginx/nginx.conf
     ports:
       - "5000:5000"
     depends_on:
