@@ -1,0 +1,317 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Create a service based on the xtracdev atompub and nginx containers.
+Parameters:
+  LambdaArn:
+    Description: Lambda function arn to send cloud watch log output to Sumo Logic
+    Type: String
+  VpcId:
+    Type: String
+  ECSCluster:
+    Type: String
+  ALBListenerArn:
+    Type: String
+  LinkHost:
+    Description: >
+      This is the alias used to retrieve linked content. This would
+      probably be your route 53 DNS alias or your load balancer DNSNAME
+      and port.
+    Type: String
+  DBUser:
+    Type: String
+  DBPassword:
+    Type: String
+  DBHost:
+    Type: String
+  DBPort:
+    Type: Number
+  DBService:
+    Type: String
+  KeyAlias:
+    Type: String
+  Registry:
+      Type: String
+
+Resources:
+
+  CloudwatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['-', [ECSLogGroup, !Ref 'AWS::StackName']]
+      RetentionInDays: 14
+
+  LogSubscriptionFilter:
+    Type: "AWS::Logs::SubscriptionFilter"
+    Properties:
+      LogGroupName:
+        Ref: "CloudwatchLogsGroup"
+      FilterPattern: ""
+      DestinationArn: !Ref LambdaArn
+
+  AtomPubTaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: AtomPubTask
+      ContainerDefinitions:
+        -
+          Name: atomfeedpub
+          Image: !Join ['/', [!Ref Registry, 'xtracdev/atompub:latest']]
+          Memory: 256
+          Cpu: 256
+          Environment:
+            -
+              Name: KEY_ALIAS
+              Value: !Ref KeyAlias
+            -
+              Name: AWS_REGION
+              Value: !Ref "AWS::Region"
+            -
+              Name: LISTENADDR
+              Value: :8000
+            -
+              Name: DB_PASSWORD
+              Value: !Ref DBPassword
+            -
+              Name: DB_HOST
+              Value: !Ref DBHost
+            -
+              Name: DB_USER
+              Value: !Ref DBUser
+            -
+              Name: DB_PORT
+              Value: !Ref DBPort
+            -
+              Name: DB_SVC
+              Value: !Ref DBService
+            -
+              Name: LINKHOST
+              Value: !Ref LinkHost
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: ecs-demo-app
+        -
+          Name: nginxproxy
+          Image: !Join ['/', [!Ref Registry, 'xtracdev/nginxproxy:latest']]
+          PortMappings:
+            -
+              ContainerPort: 5000
+              HostPort: 0
+          Links:
+            -
+              atomfeedpub
+          Memory: 256
+          Cpu: 256
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: ecs-demo-app
+
+  AtomPubTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /ping
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VpcId
+
+  AtomPubService:
+    Type: AWS::ECS::Service
+    DependsOn: AtomPubListenerRule
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: '2'
+      LoadBalancers:
+      - ContainerName: nginxproxy
+        ContainerPort: '5000'
+        TargetGroupArn: !Ref 'AtomPubTG'
+      Role: !Ref ServiceRole
+      TaskDefinition: !Ref 'AtomPubTaskDef'
+
+  AtomPubListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'AtomPubTG'
+      Conditions:
+      - Field: path-pattern
+        Values:
+          -
+            /ping
+      ListenerArn: !Ref ALBListenerArn
+      Priority: 2
+
+  AtomPubListenerRule2:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'AtomPubTG'
+      Conditions:
+      - Field: path-pattern
+        Values:
+          -
+            /notifications/*
+      ListenerArn: !Ref ALBListenerArn
+      Priority: 3
+
+  AtomPubListenerRule3:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'AtomPubTG'
+      Conditions:
+      - Field: path-pattern
+        Values:
+          -
+            /events/*
+      ListenerArn: !Ref ALBListenerArn
+      Priority: 4
+
+
+  scalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: AtomPubService
+    Properties:
+      MaxCapacity: 12
+      MinCapacity: 2
+      ResourceId:
+        !Join ['', [service/,  !Ref ECSCluster, /, !GetAtt [AtomPubService, Name]]]
+      RoleARN: !GetAtt [AutoscalingRole, Arn]
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  AutoscalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [application-autoscaling.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: service-autoscaling
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['application-autoscaling:*', 'cloudwatch:DescribeAlarms', 'cloudwatch:PutMetricAlarm',
+              'ecs:DescribeServices', 'ecs:UpdateService']
+            Resource: '*'
+
+  HighECSCPU:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: True
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Period: 300
+      Statistic: Average
+      Threshold: 75.0
+      AlarmActions:
+      - !Ref ScaleOutECSService
+      Dimensions:
+      - Name: ServiceName
+        Value: !GetAtt [AtomPubService, Name]
+      - Name: ClusterName
+        Value: !Ref ECSCluster
+
+  ScaleOutECSService:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: ScaleOutService
+      PolicyType: StepScaling
+      ScalingTargetId:
+        Ref: scalableTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: PercentChangeInCapacity
+        Cooldown: 500
+        MetricAggregationType: Average
+        StepAdjustments:
+        - MetricIntervalLowerBound: 0
+          ScalingAdjustment: 100
+
+  LowECSCPU:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: True
+      ComparisonOperator: LessThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Period: 300
+      Statistic: Average
+      Threshold: 25.0
+      AlarmActions:
+      - !Ref ScaleInECSService
+      Dimensions:
+      - Name: ServiceName
+        Value: !GetAtt [AtomPubService, Name]
+      - Name: ClusterName
+        Value: !Ref ECSCluster
+
+
+  ScaleInECSService:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: ScaleInService
+      PolicyType: StepScaling
+      ScalingTargetId:
+        Ref: scalableTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: PercentChangeInCapacity
+        Cooldown: 500
+        MetricAggregationType: Average
+        StepAdjustments:
+        - MetricIntervalUpperBound: 0
+          ScalingAdjustment: -50
+
+  ServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ecs-service-${AWS::StackName}
+      Path: /
+      AssumeRolePolicyDocument: |
+        {
+          "Statement": [{
+
+            "Effect": "Allow",
+            "Principal": { "Service": [ "ecs.amazonaws.com" ]},
+            "Action": [ "sts:AssumeRole" ]
+          }]
+        }
+      Policies:
+        - PolicyName: !Sub ecs-service-${AWS::StackName}
+          PolicyDocument:
+            {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:AuthorizeSecurityGroupIngress",
+                  "ec2:Describe*",
+                  "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                  "elasticloadbalancing:Describe*",
+                  "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                  "elasticloadbalancing:DeregisterTargets",
+                  "elasticloadbalancing:DescribeTargetGroups",
+                  "elasticloadbalancing:DescribeTargetHealth",
+                  "elasticloadbalancing:RegisterTargets"
+                ],
+                "Resource": "*"
+              }]
+            }

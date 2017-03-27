@@ -34,6 +34,28 @@ docker compose file. Also, use the subject alt names extension to
 associate the nginxproxy cert both with the docker-compose network
 name (nginxproxy) and the endpoint clients will access it using.
 
+
+## AWS ECS Support
+
+Use the feedsvc.yaml Cloud Formation Template. Prior to its use, create
+the repositories and push the images.
+
+You can create the repos using the aws command line, e.g.
+
+<pre>
+aws ecr create-repository --repository-name xtracdev/atompub
+aws ecr create-repository --repository-name xtracdev/nginxproxy
+</pre>
+
+Then tag and push - you probably need to do a login first:
+
+<pre>
+`aws ecr get-login`
+docker tag xtracdev/atompub:latest xxxx.dkr.ecr.us-west-2.amazonaws.com/xtracdev/atompub:latest 
+docker push xxxx.dkr.ecr.us-west-2.amazonaws.com/xtracdev/atompub:latest
+</pre>
+
+
 ## Contributing
 
 To contribute, you must certify you agree with the [Developer Certificate of Origin](http://developercertificate.org/)
