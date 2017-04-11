@@ -55,6 +55,12 @@ docker tag xtracdev/atompub:latest xxxx.dkr.ecr.us-west-2.amazonaws.com/xtracdev
 docker push xxxx.dkr.ecr.us-west-2.amazonaws.com/xtracdev/atompub:latest
 </pre>
 
+## Circle CI Build
+
+***NOTE:*** 
+
+If you leave COPY apt.conf in Dockerfile, the downstream code build that 
+does the docker.io packaging and push WILL BREAK!
 
 ## Contributing
 
