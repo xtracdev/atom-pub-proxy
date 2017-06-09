@@ -2,7 +2,7 @@ version: '2'
 
 services:
   atomfeedpub:
-    image: xtracdev/atompub
+    image: xtracdev/atompubpg
     environment:
       - LINKHOST=${LINKHOST}
       - LISTENADDR=${LISTENADDR}
@@ -10,7 +10,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
-      - DB_SVC=${DB_SVC}
+      - DB_NAME=${DB_NAME}
       - KEY_ALIAS=${KEY_ALIAS}
 
   nginxproxy:
